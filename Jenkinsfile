@@ -7,6 +7,8 @@ pipeline {
 
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECR_REPOSITORY = "oggy-app-dev"
+
+        ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-policy-dev"
     }
 
     stages {
@@ -25,6 +27,28 @@ pipeline {
                 ).trim()
                 }
                 echo "Using image tag: ${env.COMMIT_SHA}"
+            }
+        }
+
+        stage ("Assume role for ECR credentials") {
+            steps {
+                script {
+                    def creds = sh (
+                        script """
+                            aws sts assume-role \
+                            --role-arn ${ASSUME_ROLE_ARN} \
+                            --role-session-name jenkins-ci-session \
+                            --output json
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    def json = readJSON text: creds
+
+                    env.AWS_ACCESS_KEY_ID     = json.Credentials.AccessKeyId
+                    env.AWS_SECRET_ACCESS_KEY = json.Credentials.SecretAccessKey
+                    env.AWS_SESSION_TOKEN     = json.Credentials.SessionToken
+                }
             }
         }
 
