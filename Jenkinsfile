@@ -8,7 +8,7 @@ pipeline {
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECR_REPOSITORY = "oggy-app-dev"
 
-        ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-policy-dev"
+        ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
     }
 
     stages {
