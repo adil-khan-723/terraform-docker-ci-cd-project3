@@ -34,7 +34,7 @@ pipeline {
             steps {
                 script {
                     def creds = sh (
-                        script """
+                        script: """
                             aws sts assume-role \
                             --role-arn ${ASSUME_ROLE_ARN} \
                             --role-session-name jenkins-ci-session \
