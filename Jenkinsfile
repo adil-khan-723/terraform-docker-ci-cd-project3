@@ -93,7 +93,7 @@ pipeline {
 
     post {
     always {
-      echo "CI completed for commit ${env.COMMIT_SHA}"
+      echo "CI completed for commit ${env.COMMIT_SHA}."
     }
 
     success {
