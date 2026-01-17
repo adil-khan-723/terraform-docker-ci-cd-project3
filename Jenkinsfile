@@ -97,7 +97,7 @@ pipeline {
     }
 
     success {
-      echo "Images pushed successfully to ECR"
+      echo "Images pushed successfully to ECR."
     }
 
     failure {
