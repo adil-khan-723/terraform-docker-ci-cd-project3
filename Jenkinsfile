@@ -101,7 +101,7 @@ pipeline {
     }
 
     failure {
-      echo "CI failed — no images pushed"
+      echo "CI failed — no images pushed."
     }
   }
 }
