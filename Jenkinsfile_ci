@@ -101,7 +101,7 @@ pipeline {
 
     post {
     success {
-      archiveArtifacts artifacts: 'image-tags.env' fingerprint: true
+      archiveArtifacts artifacts: 'image-tags.env', fingerprint: true
       echo "Images pushed successfully to ECR with image tag ${COMMIT_SHA}."
     }
 
