@@ -32,7 +32,7 @@ pipeline {
             steps {
                 sh '''
                   set -a
-                  source image-tags.env
+                  . image-tags.env
                   set +a
 
                   echo "Backend image tag  : $BACKEND_IMAGE_TAG"
