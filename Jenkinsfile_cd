@@ -29,12 +29,12 @@ pipeline {
         stage("Load image tags") {
             steps {
                 sh '''
-                    echo "Workspace contents:"
-                    ls -la
+                    echo "Workspace is: $WORKSPACE"
+                    ls -la $WORKSPACE
 
                     echo "Loading image tags..."
                     set -a
-                    . image-tags.env
+                    . "$WORKSPACE/image-tags.env"
                     set +a
 
                     echo "Backend image tag  : $BACKEND_IMAGE_TAG"
