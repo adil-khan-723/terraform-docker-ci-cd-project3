@@ -2,34 +2,33 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = "ap-south-1"
-        AWS_ACCOUNT_ID = "736786104206"
+        AWS_REGION      = "ap-south-1"
+        AWS_ACCOUNT_ID  = "736786104206"
         ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
     }
 
-    parameters {
-        string(name: 'CI_BUILD_NUMBER', description: 'CI build number to fetch image tags from')
-    }
-
     stages {
-        stage ("Checkout repo") {
+
+        stage("Checkout infra repo") {
             steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/adil-khan-723/terraform-docker-infra-code-project3.git'
-                echo "Checkout complete"
+                git branch: 'main',
+                    changelog: false,
+                    poll: false,
+                    url: 'https://github.com/adil-khan-723/terraform-docker-infra-code-project3.git'
             }
         }
 
-        stage ("Fetch image tags from artifacts") {
+        stage("Fetch image tags from CI artifacts") {
             steps {
-                copyArtifacts (
-                    projectName: "ci",
-                    selector: specific(params.CI_BUILD_NUMBER),
+                copyArtifacts(
+                    projectName: 'ci',
+                    selector: specific(env.UPSTREAM_BUILD_NUMBER),
                     filter: 'image-tags.env'
                 )
             }
         }
 
-        stage ("Load image tags to environment") {
+        stage("Load image tags into environment") {
             steps {
                 script {
                     def tags = readFile('image-tags.env')
@@ -38,27 +37,29 @@ pipeline {
                         env[k.trim()] = v.trim()
                     }
                 }
+
                 sh '''
-                    echo "backend tag : $BACKEND_IMAGE_TAG"
-                    echo "frontend tag : $FRONTEND_IMAGE_TAG"
+                    echo "Backend image tag  : $BACKEND_IMAGE_TAG"
+                    echo "Frontend image tag : $FRONTEND_IMAGE_TAG"
                 '''
             }
         }
 
-        stage ("Assume deploy role") {
+        stage("Assume deploy role") {
             steps {
                 script {
                     def creds = sh(
                         script: """
                             aws sts assume-role \
-                            --role-arn ${ASSUME_ROLE_ARN} \
-                            --role-session-name jenkins-cd-session \
-                            --output json 
+                              --role-arn ${ASSUME_ROLE_ARN} \
+                              --role-session-name jenkins-cd-session \
+                              --output json
                         """,
                         returnStdout: true
                     ).trim()
 
                     def json = readJSON text: creds
+
                     env.AWS_ACCESS_KEY_ID     = json.Credentials.AccessKeyId
                     env.AWS_SECRET_ACCESS_KEY = json.Credentials.SecretAccessKey
                     env.AWS_SESSION_TOKEN     = json.Credentials.SessionToken
@@ -86,9 +87,8 @@ pipeline {
 
     post {
         success {
-            echo "CD successful — deployed backend=${BACKEND_IMAGE_TAG}, frontend=${FRONTEND_IMAGE_TAG}"
+            echo "CD successful — backend=${BACKEND_IMAGE_TAG}, frontend=${FRONTEND_IMAGE_TAG}"
         }
-
         failure {
             echo "CD failed"
         }
