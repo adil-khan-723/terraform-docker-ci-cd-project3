@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION      = "ap-south-1"
-        AWS_ACCOUNT_ID  = "736786104206"
+        AWS_REGION     = "ap-south-1"
+        AWS_ACCOUNT_ID = "736786104206"
         ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
     }
 
@@ -12,13 +12,11 @@ pipeline {
         stage("Checkout infra repo") {
             steps {
                 git branch: 'main',
-                    changelog: false,
-                    poll: false,
                     url: 'https://github.com/adil-khan-723/terraform-docker-infra-code-project3.git'
             }
         }
 
-        stage("Fetch image tags from CI (upstream)") {
+        stage("Fetch image tags from CI") {
             steps {
                 copyArtifacts(
                     projectName: 'ci',
@@ -28,15 +26,19 @@ pipeline {
             }
         }
 
-        stage("Load image tags into environment") {
+        stage("Load image tags") {
             steps {
                 sh '''
-                  set -a
-                  . image-tags.env
-                  set +a
+                    echo "Workspace contents:"
+                    ls -la
 
-                  echo "Backend image tag  : $BACKEND_IMAGE_TAG"
-                  echo "Frontend image tag : $FRONTEND_IMAGE_TAG"
+                    echo "Loading image tags..."
+                    set -a
+                    . image-tags.env
+                    set +a
+
+                    echo "Backend image tag  : $BACKEND_IMAGE_TAG"
+                    echo "Frontend image tag : $FRONTEND_IMAGE_TAG"
                 '''
             }
         }
@@ -71,20 +73,21 @@ pipeline {
 
         stage("Terraform apply") {
             steps {
-                sh """
+                sh '''
                   terraform apply -auto-approve \
-                    -var="backend_image_tag=$BACKEND_IMAGE_TAG" \
-                    -var="frontend_image_tag=$FRONTEND_IMAGE_TAG" \
+                    -var="backend_image_tag=${BACKEND_IMAGE_TAG}" \
+                    -var="frontend_image_tag=${FRONTEND_IMAGE_TAG}" \
                     -var-file=./env/dev.tfvars
-                """
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "CD successful — backend=$BACKEND_IMAGE_TAG frontend=$FRONTEND_IMAGE_TAG"
+            echo "CD successful — backend=${BACKEND_IMAGE_TAG}, frontend=${FRONTEND_IMAGE_TAG}"
         }
+
         failure {
             echo "CD failed"
         }
