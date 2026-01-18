@@ -30,6 +30,14 @@ pipeline {
             }
         }
 
+        stage ("Create image tag artifact") {
+            steps {
+                sh """
+                    echo "BACKEND_IMAGE_TAG=backend-${COMMIT_SHA}" > image-tags.env
+                    echo "FRONTEND_IMAGE_TAG=frontend-${COMMIT_SHA}" >> image-tags.env
+                """
+            }
+        }
         stage ("Assume role for ECR credentials") {
             steps {
                 script {
@@ -92,12 +100,9 @@ pipeline {
     }
 
     post {
-    always {
-      echo "CI completed for commit ${env.COMMIT_SHA}.."
-    }
-
     success {
-      echo "Images pushed successfully to ECR."
+      archiveArtifacts artifacts: 'image-tags.env' fingerprint: true
+      echo "Images pushed successfully to ECR with image tag ${COMMIT_SHA}."
     }
 
     failure {
