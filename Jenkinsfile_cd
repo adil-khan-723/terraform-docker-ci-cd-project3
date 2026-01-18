@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION      = "ap-south-1"
-        AWS_ACCOUNT_ID  = "736786104206"
-        ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
+        AWS_REGION       = "ap-south-1"
+        AWS_ACCOUNT_ID   = "736786104206"
+        ASSUME_ROLE_ARN  = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
     }
 
     stages {
@@ -18,11 +18,11 @@ pipeline {
             }
         }
 
-        stage("Fetch image tags from CI artifacts") {
+        stage("Fetch image tags from CI (upstream)") {
             steps {
                 copyArtifacts(
                     projectName: 'ci',
-                    selector: specific(env.UPSTREAM_BUILD_NUMBER),
+                    selector: upstream(),
                     filter: 'image-tags.env'
                 )
             }
@@ -32,15 +32,15 @@ pipeline {
             steps {
                 script {
                     def tags = readFile('image-tags.env')
-                    tags.split('\n').each {
-                        def (k, v) = it.split('=')
+                    tags.split('\n').each { line ->
+                        def (k, v) = line.split('=')
                         env[k.trim()] = v.trim()
                     }
                 }
 
                 sh '''
-                    echo "Backend image tag  : $BACKEND_IMAGE_TAG"
-                    echo "Frontend image tag : $FRONTEND_IMAGE_TAG"
+                  echo "Backend image tag  : $BACKEND_IMAGE_TAG"
+                  echo "Frontend image tag : $FRONTEND_IMAGE_TAG"
                 '''
             }
         }
@@ -50,10 +50,10 @@ pipeline {
                 script {
                     def creds = sh(
                         script: """
-                            aws sts assume-role \
-                              --role-arn ${ASSUME_ROLE_ARN} \
-                              --role-session-name jenkins-cd-session \
-                              --output json
+                          aws sts assume-role \
+                            --role-arn ${ASSUME_ROLE_ARN} \
+                            --role-session-name jenkins-cd-session \
+                            --output json
                         """,
                         returnStdout: true
                     ).trim()
@@ -87,7 +87,7 @@ pipeline {
 
     post {
         success {
-            echo "CD successful — backend=${BACKEND_IMAGE_TAG}, frontend=${FRONTEND_IMAGE_TAG}"
+            echo "CD successful — deployed backend=${BACKEND_IMAGE_TAG}, frontend=${FRONTEND_IMAGE_TAG}"
         }
         failure {
             echo "CD failed"
