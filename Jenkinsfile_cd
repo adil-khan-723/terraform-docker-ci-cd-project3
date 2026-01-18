@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION       = "ap-south-1"
-        AWS_ACCOUNT_ID   = "736786104206"
-        ASSUME_ROLE_ARN  = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
+        AWS_REGION      = "ap-south-1"
+        AWS_ACCOUNT_ID  = "736786104206"
+        ASSUME_ROLE_ARN = "arn:aws:iam::736786104206:role/ci-ecr-push-role-dev"
     }
 
     stages {
@@ -22,7 +22,7 @@ pipeline {
             steps {
                 copyArtifacts(
                     projectName: 'ci',
-                    selector: upstream(),
+                    selector: lastSuccessful(),
                     filter: 'image-tags.env'
                 )
             }
@@ -30,15 +30,11 @@ pipeline {
 
         stage("Load image tags into environment") {
             steps {
-                script {
-                    def tags = readFile('image-tags.env')
-                    tags.split('\n').each { line ->
-                        def (k, v) = line.split('=')
-                        env[k.trim()] = v.trim()
-                    }
-                }
-
                 sh '''
+                  set -a
+                  source image-tags.env
+                  set +a
+
                   echo "Backend image tag  : $BACKEND_IMAGE_TAG"
                   echo "Frontend image tag : $FRONTEND_IMAGE_TAG"
                 '''
@@ -77,8 +73,8 @@ pipeline {
             steps {
                 sh """
                   terraform apply -auto-approve \
-                    -var="backend_image_tag=${BACKEND_IMAGE_TAG}" \
-                    -var="frontend_image_tag=${FRONTEND_IMAGE_TAG}" \
+                    -var="backend_image_tag=$BACKEND_IMAGE_TAG" \
+                    -var="frontend_image_tag=$FRONTEND_IMAGE_TAG" \
                     -var-file=./env/dev.tfvars
                 """
             }
@@ -87,7 +83,7 @@ pipeline {
 
     post {
         success {
-            echo "CD successful — deployed backend=${BACKEND_IMAGE_TAG}, frontend=${FRONTEND_IMAGE_TAG}"
+            echo "CD successful — backend=$BACKEND_IMAGE_TAG frontend=$FRONTEND_IMAGE_TAG"
         }
         failure {
             echo "CD failed"
